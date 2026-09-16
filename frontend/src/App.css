@@ -1,0 +1,17 @@
+.content-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.content-wrapper h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.content-wrapper p {
+  color: #6b7280;
+  font-size: 1rem;
+}
