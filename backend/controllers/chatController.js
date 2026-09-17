@@ -7,7 +7,7 @@ const aiAssistantService = require('../services/aiAssistantService');
  */
 const sendMessage = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, language } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({
@@ -35,7 +35,8 @@ const sendMessage = async (req, res) => {
     const reply = await aiAssistantService.generateResponse(
       message.trim(),
       safeContext,
-      history
+      history,
+      language || 'en'
     );
 
     // 4. Save both user message and assistant reply in chat_messages table

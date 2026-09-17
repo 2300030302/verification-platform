@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from './i18n/LanguageContext';
 import { validationAPI } from './services/api';
 import './VerificationStatus.css';
 
 function VerificationStatus() {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -62,12 +64,12 @@ function VerificationStatus() {
   const getOverallBadgeText = (status) => {
     switch (status) {
       case 'PASSED':
-        return 'Verification Passed';
+        return t('status.overallPassed', null, 'Verification Passed');
       case 'NEEDS_REVIEW':
-        return 'Needs Review';
+        return t('status.overallNeedsReview', null, 'Needs Review');
       case 'WARNING':
       default:
-        return 'In Progress';
+        return t('status.overallWarning', null, 'In Progress');
     }
   };
 
@@ -83,18 +85,45 @@ function VerificationStatus() {
     }
   };
 
+  const getFindingTitle = (finding) => {
+    const type = finding.checkType || finding.type;
+    switch (type) {
+      case 'REQUIRED_DOCUMENTS':
+        return t('status.checkRequired', null, finding.label || 'Required Documents');
+      case 'NAME_CONSISTENCY':
+        return t('status.checkName', null, finding.label || 'Name Consistency');
+      case 'ADDRESS_CONSISTENCY':
+        return t('status.checkAddress', null, finding.label || 'Address Consistency');
+      case 'DOCUMENT_EXPIRY':
+        return t('status.checkExpiry', null, finding.label || 'Document Validity & Expiry');
+      default:
+        return finding.label || t('status.checkUnknown', null, 'Consistency Check');
+    }
+  };
+
+  const getFindingStatusTag = (status) => {
+    switch (status) {
+      case 'passed':
+        return t('status.statusPassed', null, 'Passed');
+      case 'warning':
+        return t('status.statusWarning', null, 'Warning');
+      default:
+        return t('status.statusFailed', null, 'Review Needed');
+    }
+  };
+
   return (
     <div className="verification-status-container">
       <div className="status-header-section">
-        <h1 className="status-page-title">Verification Status & Findings</h1>
+        <h1 className="status-page-title">{t('status.pageTitle', null, 'Verification Status & Findings')}</h1>
         <p className="status-page-subtitle">
-          Real-time cross-document consistency checks and verification progress
+          {t('status.pageSubtitle', null, 'Real-time cross-document consistency checks and verification progress')}
         </p>
       </div>
 
       {loading && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-          Loading verification status...
+          {t('status.loadingStatus', null, 'Loading verification status...')}
         </div>
       )}
 
@@ -117,13 +146,13 @@ function VerificationStatus() {
           {/* Overall Status Card */}
           <div className="overall-status-card">
             <div className="overall-status-info">
-              <h3>Overall Verification Progress</h3>
+              <h3>{t('status.findingsTitle', null, 'Overall Verification Progress')}</h3>
               <p>
                 {data.overallStatus === 'PASSED'
-                  ? 'All identity, address, and document consistency checks have been satisfied.'
+                  ? t('status.overallPassedDesc', null, 'All identity, address, and document consistency checks have been satisfied.')
                   : data.overallStatus === 'NEEDS_REVIEW'
-                  ? 'Some document inconsistencies require attention or manual review.'
-                  : 'Your verification is underway. Upload remaining documents to complete review.'}
+                  ? t('status.overallReviewDesc', null, 'Some document inconsistencies require attention or manual review.')
+                  : t('status.overallProgressDesc', null, 'Your verification is underway. Upload remaining documents to complete review.')}
               </p>
             </div>
             <div className={`overall-badge ${getOverallClass(data.overallStatus)}`}>
@@ -133,9 +162,9 @@ function VerificationStatus() {
 
           {/* Action Bar */}
           <div className="status-actions-bar">
-            <h2 className="section-subheading">Verification Findings</h2>
+            <h2 className="section-subheading">{t('status.findingsTitle', null, 'Verification Findings')}</h2>
             <button className="rerun-btn" onClick={handleRerun} disabled={running}>
-              {running ? 'Re-running Checks...' : '🔄 Re-run Consistency Checks'}
+              {running ? t('status.runningBtn', null, 'Running Validation...') : `🔄 ${t('status.reRunBtn', null, 'Re-run Consistency Checks')}`}
             </button>
           </div>
 
@@ -147,13 +176,9 @@ function VerificationStatus() {
                   <div className="finding-icon">{f.icon}</div>
                   <div className="finding-content">
                     <div className="finding-header">
-                      <span className="finding-title">{f.label}</span>
+                      <span className="finding-title">{getFindingTitle(f)}</span>
                       <span className={`finding-status-tag ${f.status}`}>
-                        {f.status === 'passed'
-                          ? 'Passed'
-                          : f.status === 'warning'
-                          ? 'Warning'
-                          : 'Review Needed'}
+                        {getFindingStatusTag(f.status)}
                       </span>
                     </div>
                     <p className="finding-message">{f.message}</p>
@@ -168,14 +193,13 @@ function VerificationStatus() {
           {/* CTA Section */}
           <div className="upload-cta-card">
             <div className="upload-cta-info">
-              <h4>Need to update or add documents?</h4>
+              <h4>{t('documents.uploadCardTitle', null, 'Need to update or add documents?')}</h4>
               <p>
-                You can upload missing items or replace existing documents at any time from My
-                Documents.
+                {t('documents.uploadCardDesc', null, 'You can upload missing items or replace existing documents at any time from My Documents.')}
               </p>
             </div>
             <Link to="/documents" className="cta-link-btn">
-              Manage Documents →
+              {t('nav.myDocuments', null, 'Manage Documents')} →
             </Link>
           </div>
         </>

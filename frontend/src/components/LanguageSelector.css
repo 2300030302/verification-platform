@@ -1,0 +1,84 @@
+.language-selector-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.language-selector-wrapper:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.language-selector-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.language-globe-icon {
+  font-size: 1rem;
+}
+
+.language-label-text {
+  font-size: 0.85rem;
+}
+
+.language-dropdown-select {
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+}
+
+.language-dropdown-select option {
+  background: #1e3a8a;
+  color: #ffffff;
+  padding: 0.4rem;
+}
+
+/* Auth Card / Light Theme Variant */
+.language-selector-wrapper.auth-card-variant {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 0.4rem 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.language-selector-wrapper.auth-card-variant:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.language-selector-wrapper.auth-card-variant .language-dropdown-select {
+  color: #0f172a;
+}
+
+.language-selector-wrapper.auth-card-variant .language-dropdown-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  .language-label-text {
+    display: none;
+  }
+  .language-selector-wrapper {
+    padding: 0.25rem 0.4rem;
+  }
+}

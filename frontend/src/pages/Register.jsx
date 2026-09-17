@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 import { authAPI } from '../services/api';
 import './Login.css';
 import './Register.css';
 
 export default function Register() {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +37,7 @@ export default function Register() {
     setSuccess('');
 
     if (!name.trim() || !email.trim() || !password) {
-      setError('All fields are required.');
+      setError(t('auth.credsError', {}, 'All fields are required.'));
       return;
     }
 
@@ -54,7 +57,7 @@ export default function Register() {
       const response = await authAPI.register(name.trim(), email.trim(), password, role);
 
       if (response && response.success) {
-        setSuccess('Account created successfully! Redirecting to login...');
+        setSuccess(t('auth.regSuccess', {}, 'Account created successfully! Redirecting to login...'));
         setTimeout(() => {
           navigate('/login');
         }, 1500);
@@ -75,10 +78,14 @@ export default function Register() {
   return (
     <div className="auth-page-container">
       <div className="auth-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <LanguageSelector variant="auth-card-variant" />
+        </div>
+
         <div className="auth-header">
           <div className="auth-icon">📝</div>
-          <h1 className="auth-title">Create Account</h1>
-          <p className="auth-subtitle">Register for the Customer Verification Portal</p>
+          <h1 className="auth-title">{t('auth.regTitle', {}, 'Create Account')}</h1>
+          <p className="auth-subtitle">{t('auth.regSubtitle', {}, 'Register for the Customer Verification Portal')}</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}
@@ -86,12 +93,12 @@ export default function Register() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="name">Full Name</label>
+            <label className="form-label" htmlFor="name">{t('auth.fullNameLabel', {}, 'Full Name')}</label>
             <input
               id="name"
               type="text"
               className="form-input"
-              placeholder="e.g. John Doe"
+              placeholder={t('auth.fullNamePlaceholder', {}, 'e.g. John Doe')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -100,12 +107,12 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="email">Email Address</label>
+            <label className="form-label" htmlFor="email">{t('auth.emailLabel', {}, 'Email Address')}</label>
             <input
               id="email"
               type="email"
               className="form-input"
-              placeholder="name@example.com"
+              placeholder={t('auth.emailPlaceholder', {}, 'name@example.com')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -114,12 +121,12 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="password">Password (min. 6 characters)</label>
+            <label className="form-label" htmlFor="password">{t('auth.passwordLabel', {}, 'Password')}</label>
             <input
               id="password"
               type="password"
               className="form-input"
-              placeholder="Create a secure password"
+              placeholder={t('auth.passwordPlaceholder', {}, 'Enter your password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -128,7 +135,7 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Select Account Role</label>
+            <label className="form-label">{t('auth.roleLabel', {}, 'Select Account Role')}</label>
             <div className="role-selection-group">
               <label className={`role-option ${role === 'customer' ? 'selected' : ''}`}>
                 <input
@@ -138,7 +145,7 @@ export default function Register() {
                   checked={role === 'customer'}
                   onChange={(e) => setRole(e.target.value)}
                 />
-                Customer
+                {t('auth.customerRole', {}, 'Customer')}
               </label>
               <label className={`role-option ${role === 'officer' ? 'selected' : ''}`}>
                 <input
@@ -148,7 +155,7 @@ export default function Register() {
                   checked={role === 'officer'}
                   onChange={(e) => setRole(e.target.value)}
                 />
-                Officer
+                {t('auth.officerRole', {}, 'Officer')}
               </label>
             </div>
           </div>
@@ -158,13 +165,13 @@ export default function Register() {
             className="auth-btn"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating Account...' : 'Create Account'}
+            {isSubmitting ? t('auth.registering', {}, 'Creating Account...') : t('auth.registerBtn', {}, 'Create Account')}
           </button>
         </form>
 
         <div className="auth-footer">
-          Already have an account?
-          <Link to="/login" className="auth-link">Sign in</Link>
+          {t('auth.haveAccount', {}, 'Already have an account?')}{' '}
+          <Link to="/login" className="auth-link">{t('auth.signInLink', {}, 'Sign in')}</Link>
         </div>
       </div>
     </div>

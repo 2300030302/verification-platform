@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 import { authAPI } from '../services/api';
 import './Login.css';
 
 export default function Login() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,7 +33,7 @@ export default function Login() {
     setError('');
 
     if (!email || !password) {
-      setError('Please enter both email and password.');
+      setError(t('auth.credsError', {}, 'Please enter both email and password.'));
       return;
     }
 
@@ -58,7 +61,7 @@ export default function Login() {
 
         navigate(destination, { replace: true });
       } else {
-        setError('Login failed. Please check your credentials.');
+        setError(t('auth.loginFailed', {}, 'Login failed. Please check your credentials.'));
       }
     } catch (err) {
       const errorMsg =
@@ -74,22 +77,26 @@ export default function Login() {
   return (
     <div className="auth-page-container">
       <div className="auth-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <LanguageSelector variant="auth-card-variant" />
+        </div>
+
         <div className="auth-header">
           <div className="auth-icon">🛡️</div>
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to your Verification Portal account</p>
+          <h1 className="auth-title">{t('auth.loginTitle', {}, 'Welcome Back')}</h1>
+          <p className="auth-subtitle">{t('auth.loginSubtitle', {}, 'Sign in to your Verification Portal account')}</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="email">Email Address</label>
+            <label className="form-label" htmlFor="email">{t('auth.emailLabel', {}, 'Email Address')}</label>
             <input
               id="email"
               type="email"
               className="form-input"
-              placeholder="name@example.com"
+              placeholder={t('auth.emailPlaceholder', {}, 'name@example.com')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -98,12 +105,12 @@ export default function Login() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="password">Password</label>
+            <label className="form-label" htmlFor="password">{t('auth.passwordLabel', {}, 'Password')}</label>
             <input
               id="password"
               type="password"
               className="form-input"
-              placeholder="Enter your password"
+              placeholder={t('auth.passwordPlaceholder', {}, 'Enter your password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -116,13 +123,13 @@ export default function Login() {
             className="auth-btn"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
+            {isSubmitting ? t('auth.signingIn', {}, 'Signing In...') : t('auth.signInBtn', {}, 'Sign In')}
           </button>
         </form>
 
         <div className="auth-footer">
-          Don't have an account?
-          <Link to="/register" className="auth-link">Create an account</Link>
+          {t('auth.noAccount', {}, "Don't have an account?")}{' '}
+          <Link to="/register" className="auth-link">{t('auth.createAccountLink', {}, 'Create an account')}</Link>
         </div>
       </div>
     </div>

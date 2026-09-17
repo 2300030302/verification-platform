@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './context/useAuth';
+import { useLanguage } from './i18n/LanguageContext';
 import { chatAPI } from './services/api';
 import './Help.css';
 
-const SUGGESTED_QUESTIONS = [
-  'What documents do I need?',
-  'What counts as valid address proof?',
-  'What is my verification status?',
-  'Why was my document flagged?',
-  'What should I upload next?',
-  'What happens after I submit my documents?',
-];
-
 function Help() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,6 +15,15 @@ function Help() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messageCounterRef = useRef(0);
+
+  const suggestedQuestions = [
+    t('help.q1', null, 'What documents do I need?'),
+    t('help.q2', null, 'What counts as valid address proof?'),
+    t('help.q3', null, 'What is my verification status?'),
+    t('help.q4', null, 'Why was my document flagged?'),
+    t('help.q5', null, 'What should I upload next?'),
+    t('help.q6', null, 'What happens after I submit my documents?'),
+  ];
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -77,7 +79,7 @@ function Help() {
     setLoading(true);
 
     try {
-      const res = await chatAPI.sendMessage(text);
+      const res = await chatAPI.sendMessage(text, language);
       if (res.success && res.reply) {
         messageCounterRef.current += 1;
         const assistantMsg = {
@@ -127,16 +129,16 @@ function Help() {
         <div className="help-header-left">
           <div className="assistant-avatar-badge">🤖</div>
           <div>
-            <h1 className="help-title">BNP Paribas Verification Assistant</h1>
+            <h1 className="help-title">{t('help.pageTitle', null, 'Customer AI Assistant')}</h1>
             <p className="help-subtitle">
-              Instant guidance on required documents, verification status, and resolving consistency flags.
+              {t('help.pageSubtitle', null, 'Instant guidance on required documents, verification status, and resolving consistency flags.')}
             </p>
           </div>
         </div>
         <div className="help-header-right">
           {messages.length > 0 && (
             <button className="clear-chat-btn" onClick={handleClearChat} title="Clear conversation history">
-              🗑️ New Chat
+              🗑️ {t('help.clearHistoryBtn', null, 'New Chat')}
             </button>
           )}
         </div>
@@ -144,9 +146,9 @@ function Help() {
 
       {/* Suggested Quick Questions */}
       <div className="suggested-prompts-bar">
-        <span className="suggested-label">💡 Suggested Questions:</span>
+        <span className="suggested-label">💡 {t('help.suggestedTitle', null, 'Suggested Questions')}:</span>
         <div className="prompts-chips-wrapper">
-          {SUGGESTED_QUESTIONS.map((q, idx) => (
+          {suggestedQuestions.map((q, idx) => (
             <button
               key={idx}
               className="prompt-chip"
@@ -264,7 +266,7 @@ function Help() {
               ref={inputRef}
               type="text"
               className="chat-text-input"
-              placeholder="Ask a question about your documents, status, or requirements..."
+              placeholder={t('help.chatPlaceholder', null, 'Ask a question about your documents, status, or requirements...')}
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -276,11 +278,11 @@ function Help() {
               disabled={loading || !inputMessage.trim()}
               title="Send message (Enter)"
             >
-              {loading ? '...' : 'Send ✈️'}
+              {loading ? '...' : `${t('help.sendBtn', null, 'Send')} ✈️`}
             </button>
           </form>
           <div className="chat-footer-disclaimer">
-            ⚖️ <strong>Compliance Notice:</strong> The assistant explains existing documentation. Final onboarding determinations are executed by human compliance officers.
+            ⚖️ {t('help.chatDisclaimer', null, 'Answers are generated from your active verification records and BNP Paribas compliance guidelines.')}
           </div>
         </div>
       </div>

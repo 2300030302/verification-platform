@@ -1,12 +1,15 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/useAuth';
+import { useLanguage } from './i18n/LanguageContext';
+import LanguageSelector from './components/LanguageSelector';
 import './Layout.css';
 
 function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   const handleLogout = () => {
     logout();
@@ -22,10 +25,13 @@ function Layout({ children }) {
       {/* Header */}
       <header className="layout-header">
         <div className="layout-header-content">
-          <h1 className="layout-app-name">Customer Verification Portal</h1>
+          <h1 className="layout-app-name">{t('header.portalTitle', {}, 'Customer Verification Portal')}</h1>
           <div className="layout-user-info">
+            <LanguageSelector variant="header" />
             <span className="layout-customer-name">{user?.name || 'Customer'}</span>
-            <button className="layout-logout-btn" onClick={handleLogout}>Logout</button>
+            <button className="layout-logout-btn" onClick={handleLogout}>
+              {t('common.logout', {}, 'Logout')}
+            </button>
           </div>
         </div>
       </header>
@@ -36,16 +42,24 @@ function Layout({ children }) {
           <nav className="sidebar-nav">
             <ul className="nav-list">
               <li className={`nav-item ${isActive('/dashboard')}`}>
-                <Link to="/dashboard" className="nav-link">Dashboard</Link>
+                <Link to="/dashboard" className="nav-link">
+                  {t('nav.dashboard', {}, 'Dashboard')}
+                </Link>
               </li>
               <li className={`nav-item ${isActive('/documents')}`}>
-                <Link to="/documents" className="nav-link">My Documents</Link>
+                <Link to="/documents" className="nav-link">
+                  {t('nav.myDocuments', {}, 'My Documents')}
+                </Link>
               </li>
               <li className={`nav-item ${isActive('/status')}`}>
-                <Link to="/status" className="nav-link">Verification Status</Link>
+                <Link to="/status" className="nav-link">
+                  {t('nav.verificationStatus', {}, 'Verification Status')}
+                </Link>
               </li>
               <li className={`nav-item ${isActive('/help')}`}>
-                <Link to="/help" className="nav-link">Help / AI Assistant</Link>
+                <Link to="/help" className="nav-link">
+                  {t('nav.helpAssistant', {}, 'Help / AI Assistant')}
+                </Link>
               </li>
             </ul>
           </nav>

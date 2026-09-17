@@ -82,6 +82,92 @@
   line-height: 1.6;
 }
 
+/* Next Step Section */
+.next-step-section {
+  margin-bottom: 2rem;
+}
+
+.next-step-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.next-step-card.action-needed {
+  border-left: 5px solid #f59e0b;
+  background: linear-gradient(to right, #fffdfa 0%, #ffffff 45%);
+}
+
+.next-step-card.ready {
+  border-left: 5px solid #10b981;
+  background: linear-gradient(to right, #f0fdf4 0%, #ffffff 45%);
+}
+
+.next-step-content {
+  flex: 1;
+}
+
+.next-step-header {
+  margin-bottom: 0.35rem;
+}
+
+.next-step-badge {
+  display: inline-block;
+  font-size: 0.825rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1e3a8a;
+}
+
+.next-step-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.35rem 0;
+  line-height: 1.4;
+}
+
+.next-step-desc {
+  font-size: 0.925rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.next-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.next-step-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+}
+
+.next-step-btn:active {
+  transform: translateY(0);
+}
+
 /* Documents Section */
 .documents-section {
   background: white;
@@ -199,15 +285,26 @@
 }
 
 .dashboard-help-btn {
-  background: #e5e7eb;
-  color: #9ca3af;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  color: #1e3a8a;
+  border: 2px solid #3b82f6;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
-  cursor: not-allowed;
+  cursor: pointer;
+  transition: all 0.2s ease;
   width: 100%;
+}
+
+.dashboard-help-btn:hover {
+  background: #eff6ff;
+  border-color: #1e3a8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 /* Responsive Design */

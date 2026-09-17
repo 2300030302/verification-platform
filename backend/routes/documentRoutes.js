@@ -6,10 +6,17 @@ const fs = require('fs');
 const authMiddleware = require('../middleware/authMiddleware');
 const documentController = require('../controllers/documentController');
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const os = require('os');
+
+// Ensure uploads directory exists (use temp directory if running on serverless Vercel)
+const uploadsDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'verification_uploads')
+  : path.join(__dirname, '..', 'uploads');
+
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (_) {}
 }
 
 // Multer disk storage configuration

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '',
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -176,8 +176,8 @@ export const officerAPI = {
 };
 
 export const chatAPI = {
-  sendMessage: async (message) => {
-    const response = await api.post('/api/chat', { message });
+  sendMessage: async (message, language) => {
+    const response = await api.post('/api/chat', { message, language });
     return response.data;
   },
   getHistory: async () => {

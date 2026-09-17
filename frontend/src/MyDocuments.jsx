@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from './i18n/LanguageContext';
 import DocumentUpload from './DocumentUpload';
 import { documentAPI } from './services/api';
 import './MyDocuments.css';
@@ -49,12 +51,45 @@ function formatStatus(rawStatus) {
 }
 
 function MyDocuments() {
+  const navigate = useNavigate();
+  const { t } = useLanguage();
   const [documents, setDocuments] = useState(DEFAULT_REQUIRED_DOCUMENTS);
   const [uploadingDocument, setUploadingDocument] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', or null
   const [uploadMessage, setUploadMessage] = useState('');
   const [viewingExtracted, setViewingExtracted] = useState(null); // { doc, loading, data, error }
+
+  const getDocName = (typeKey, fallback) => {
+    switch (typeKey) {
+      case 'GOVERNMENT_ID': return t('documents.govtIdName', null, fallback);
+      case 'BANK_STATEMENT': return t('documents.bankStmtName', null, fallback);
+      case 'ADDRESS_PROOF': return t('documents.addressProofName', null, fallback);
+      case 'SUPPORTING_DOCUMENT': return t('documents.supportingDocName', null, fallback);
+      default: return fallback;
+    }
+  };
+
+  const getDocDesc = (typeKey, fallback) => {
+    switch (typeKey) {
+      case 'GOVERNMENT_ID': return t('documents.govtIdDesc', null, fallback);
+      case 'BANK_STATEMENT': return t('documents.bankStmtDesc', null, fallback);
+      case 'ADDRESS_PROOF': return t('documents.addressProofDesc', null, fallback);
+      case 'SUPPORTING_DOCUMENT': return t('documents.supportingDocDesc', null, fallback);
+      default: return fallback;
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'Processed': return t('documents.processedBadge', null, 'Processed');
+      case 'Processing...': return t('documents.processingBadge', null, 'Processing...');
+      case 'Extraction Failed': return t('documents.failedBadge', null, 'Extraction Failed');
+      case 'Uploaded': return t('documents.uploadedBadge', null, 'Uploaded');
+      case 'Pending': return t('documents.pendingBadge', null, 'Pending');
+      default: return status;
+    }
+  };
 
   const mapBackendDocuments = (rawDocs, currentDocs) => {
     return currentDocs.map((doc) => {
@@ -216,43 +251,51 @@ function MyDocuments() {
     setUploadingDocument(null);
   };
 
+  const requiredDocTypes = ['GOVERNMENT_ID', 'BANK_STATEMENT', 'ADDRESS_PROOF'];
+  const requiredDocs = documents.filter((doc) => requiredDocTypes.includes(doc.typeKey));
+  const allRequiredUploaded =
+    requiredDocs.length === requiredDocTypes.length &&
+    requiredDocs.every((doc) => doc.status && doc.status !== 'Pending');
+
   return (
     <div className="my-documents-container">
       <div className="documents-header">
-        <h1 className="page-title">My Documents</h1>
-        <p className="page-subtitle">Manage and upload your verification documents</p>
+        <h1 className="page-title">{t('documents.pageTitle', null, 'My Documents')}</h1>
+        <p className="page-subtitle">{t('documents.pageSubtitle', null, 'Manage and upload your verification documents')}</p>
       </div>
 
       {/* Upload Section */}
       <section className="upload-section">
         <div className="upload-card">
           <div className="my-documents-upload-icon">📄</div>
-          <h2 className="my-documents-upload-title">Upload Documents</h2>
+          <h2 className="my-documents-upload-title">{t('documents.uploadCardTitle', null, 'Upload Documents')}</h2>
           <p className="my-documents-upload-description">
-            Click on any document below to upload files. Accepted formats: PDF, JPG, PNG (Max 10MB)
+            {t('documents.uploadCardDesc', null, 'Click on any document below to upload files. Accepted formats: PDF, JPG, PNG (Max 10MB)')}
           </p>
         </div>
       </section>
 
       {/* Documents List */}
       <section className="documents-list-section">
-        <h2 className="section-heading">Required Documents</h2>
+        <h2 className="section-heading">{t('documents.listTitle', null, 'Required Documents')}</h2>
         <div className="documents-grid">
           {documents.map((doc) => (
             <div key={doc.id} className={`document-card ${getStatusClass(doc.status)}`}>
               <div className="document-card-header">
                 <div className="document-icon">📋</div>
                 <span className={`document-status-badge ${getStatusClass(doc.status)}`}>
-                  {doc.status}
+                  {getStatusLabel(doc.status)}
                 </span>
               </div>
 
-              <h3 className="document-name">{doc.name}</h3>
-              <p className="document-description">{doc.description}</p>
+              <h3 className="document-name">{getDocName(doc.typeKey, doc.name)}</h3>
+              <p className="document-description">{getDocDesc(doc.typeKey, doc.description)}</p>
 
               {doc.uploadedDate && (
                 <div className="document-meta">
-                  <span className="upload-date">Uploaded: {doc.uploadedDate}</span>
+                  <span className="upload-date">
+                    {t('documents.uploadedOn', { date: doc.uploadedDate }, `Uploaded: ${doc.uploadedDate}`)}
+                  </span>
                 </div>
               )}
 
@@ -261,11 +304,13 @@ function MyDocuments() {
                   className="action-btn doc-upload-btn"
                   onClick={() => handleUpload(doc.id)}
                 >
-                  {doc.status !== 'Pending' ? 'Replace' : 'Upload'}
+                  {doc.status !== 'Pending'
+                    ? t('common.replace', null, 'Replace')
+                    : t('common.upload', null, 'Upload')}
                 </button>
                 {doc.status !== 'Pending' && doc.dbId && (
                   <button className="action-btn view-btn" onClick={() => handleView(doc)}>
-                    View Data
+                    {t('common.viewData', null, 'View Data')}
                   </button>
                 )}
               </div>
@@ -274,16 +319,44 @@ function MyDocuments() {
         </div>
       </section>
 
+      {/* Continue to Verification Status Section */}
+      <section className="continue-verification-section">
+        <div className="continue-verification-card">
+          <div className="continue-verification-info">
+            <h3 className="continue-verification-heading">{t('documents.nextStepHeading', null, 'Next Step: Verification Status')}</h3>
+            <p className={`continue-verification-status-text ${allRequiredUploaded ? 'ready' : 'pending'}`}>
+              {allRequiredUploaded
+                ? t('documents.readyDesc', null, 'All required documents have been uploaded. You can now proceed to check your live verification status.')
+                : t('documents.missingDesc', null, 'Please upload all required documents to continue.')}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="continue-verification-btn"
+            disabled={!allRequiredUploaded}
+            onClick={() => navigate('/status')}
+            title={allRequiredUploaded
+              ? t('documents.continueBtn', null, 'Continue to Verification Status →')
+              : t('documents.missingDesc', null, 'Please upload all required documents to continue.')}
+          >
+            {t('documents.continueBtn', null, 'Continue to Verification Status →')}
+          </button>
+        </div>
+      </section>
+
       {/* Help Section */}
       <section className="help-section">
         <div className="help-content">
-          <h3 className="help-title">Need Help?</h3>
+          <h3 className="help-title">{t('documents.helpTitle', null, 'Need Help?')}</h3>
           <p className="help-text">
-            Our AI Assistant can help you understand document requirements and guide you through the
-            upload process.
+            {t('documents.helpDesc', null, 'Our AI Assistant can help you understand document requirements and guide you through the upload process.')}
           </p>
-          <button className="documents-help-btn" disabled>
-            Coming Soon
+          <button
+            type="button"
+            className="documents-help-btn"
+            onClick={() => navigate('/help')}
+          >
+            {t('dashboard.openAiBtn', null, 'Open AI Assistant →')}
           </button>
         </div>
       </section>
@@ -293,7 +366,9 @@ function MyDocuments() {
         <div className="upload-modal-overlay">
           <div className="upload-modal">
             <div className="upload-modal-header">
-              <h2 className="upload-modal-title">Upload {uploadingDocument.name}</h2>
+              <h2 className="upload-modal-title">
+                {t('documents.uploadModalTitle', { name: getDocName(uploadingDocument.typeKey, uploadingDocument.name) }, `Upload ${uploadingDocument.name}`)}
+              </h2>
               <button
                 className="close-modal-btn"
                 onClick={handleCloseUpload}
@@ -309,7 +384,7 @@ function MyDocuments() {
                 </div>
               )}
               <DocumentUpload
-                documentType={uploadingDocument.name}
+                documentType={getDocName(uploadingDocument.typeKey, uploadingDocument.name)}
                 onFileSelect={handleFileSelect}
                 onSubmit={handleSubmit}
                 isSubmitting={isSubmitting}
@@ -324,7 +399,9 @@ function MyDocuments() {
         <div className="upload-modal-overlay">
           <div className="upload-modal">
             <div className="upload-modal-header">
-              <h2 className="upload-modal-title">Extracted Data: {viewingExtracted.doc.name}</h2>
+              <h2 className="upload-modal-title">
+                {t('documents.extractedModalTitle', { name: getDocName(viewingExtracted.doc.typeKey, viewingExtracted.doc.name) }, `Extracted Data: ${viewingExtracted.doc.name}`)}
+              </h2>
               <button className="close-modal-btn" onClick={handleCloseView}>
                 ✕
               </button>
@@ -332,7 +409,7 @@ function MyDocuments() {
             <div className="upload-modal-body">
               {viewingExtracted.loading && (
                 <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                  Loading extracted data...
+                  {t('documents.loadingExtracted', null, 'Loading extracted data...')}
                 </div>
               )}
 
@@ -346,12 +423,12 @@ function MyDocuments() {
                 <div>
                   <div className="extracted-meta-info">
                     <span>
-                      <strong>File:</strong> {viewingExtracted.doc.originalFilename || 'Document'}
+                      <strong>{t('documents.fileLabel', null, 'File')}:</strong> {viewingExtracted.doc.originalFilename || 'Document'}
                     </span>
                     <span>
-                      <strong>Status:</strong>{' '}
+                      <strong>{t('documents.statusLabel', null, 'Status')}:</strong>{' '}
                       <span className={`document-status-badge ${getStatusClass(formatStatus(viewingExtracted.data.document?.status))}`}>
-                        {formatStatus(viewingExtracted.data.document?.status)}
+                        {getStatusLabel(formatStatus(viewingExtracted.data.document?.status))}
                       </span>
                     </span>
                   </div>
@@ -361,9 +438,9 @@ function MyDocuments() {
                     <table className="extracted-table">
                       <thead>
                         <tr>
-                          <th>Field</th>
-                          <th>Extracted Value</th>
-                          <th>Confidence</th>
+                          <th>{t('documents.fieldCol', null, 'Field')}</th>
+                          <th>{t('documents.valueCol', null, 'Extracted Value')}</th>
+                          <th>{t('documents.confCol', null, 'Confidence')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -400,7 +477,7 @@ function MyDocuments() {
                           marginBottom: '0.5rem',
                         }}
                       >
-                        View Raw OCR Output
+                        {t('documents.rawTextTitle', null, 'View Raw OCR Output')}
                       </summary>
                       <pre className="raw-text-box">
                         {viewingExtracted.data.extractedData.raw_text}

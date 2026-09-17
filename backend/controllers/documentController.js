@@ -4,6 +4,7 @@ const db = require('../config/database');
 const documentProcessingService = require('../services/documentProcessingService');
 const validationService = require('../services/validationService');
 const riskAssessmentService = require('../services/riskAssessmentService');
+const storageService = require('../services/storageService');
 
 const VALID_DOCUMENT_TYPES = {
   GOVERNMENT_ID: 'GOVERNMENT_ID',
@@ -90,6 +91,9 @@ const uploadDocument = async (req, res) => {
     // 5. Get or create active verification case for customer
     const verificationCase = await db.getOrCreateVerificationCase(req.user.id);
 
+    // Save to storage (supports local disk and Vercel Blob cloud storage)
+    const storageResult = await storageService.saveFile(req.file);
+
     // 6. Insert document metadata into MySQL
     const [insertResult] = await pool.query(
       `INSERT INTO documents 
@@ -100,8 +104,8 @@ const uploadDocument = async (req, res) => {
         verificationCase.id,
         normalizedType,
         req.file.originalname,
-        req.file.filename,
-        req.file.path,
+        storageResult.storedFilename || req.file.filename,
+        storageResult.filePath || req.file.path,
         req.file.mimetype,
         req.file.size,
       ]
@@ -277,22 +281,7 @@ const getDocumentFile = async (req, res) => {
       });
     }
 
-    const absoluteFilePath = path.resolve(doc.file_path);
-
-    if (!fs.existsSync(absoluteFilePath)) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document file not found on disk.',
-      });
-    }
-
-    res.setHeader('Content-Type', doc.mime_type || 'application/octet-stream');
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${encodeURIComponent(doc.original_filename)}"`
-    );
-
-    return res.sendFile(absoluteFilePath);
+    return await storageService.streamDocument(doc, res);
   } catch (error) {
     console.error('[DocumentController] Error streaming document file:', error);
     return res.status(500).json({
