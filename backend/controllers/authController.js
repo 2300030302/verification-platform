@@ -130,9 +130,20 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    const isConnError =
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'PROTOCOL_CONNECTION_LOST' ||
+      (error.message && (error.message.includes('timeout') || error.message.includes('connect')));
+
+    const errorMessage = isConnError
+      ? 'Database connection timed out. Please check database connectivity and SSL settings.'
+      : (error.message || 'An error occurred during registration.');
+
     return res.status(500).json({
       success: false,
-      error: 'An error occurred during registration.',
+      error: errorMessage,
       details: error.message,
     });
   }
@@ -166,15 +177,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Ensure table exists
-    if (typeof db.ensureUsersTable === 'function') {
-      try {
-        await db.ensureUsersTable();
-      } catch (tableError) {
-        console.warn('Could not ensure users table:', tableError.message);
-      }
-    }
-
     // Retrieve user by email (supports 'password' or 'password_hash')
     let rows;
     try {
@@ -184,7 +186,16 @@ const login = async (req, res) => {
       );
       rows = result;
     } catch (selectErr) {
-      if (selectErr.code === 'ER_BAD_FIELD_ERROR' && selectErr.message.includes('password')) {
+      if (selectErr.code === 'ER_NO_SUCH_TABLE') {
+        if (typeof db.ensureUsersTable === 'function') {
+          try { await db.ensureUsersTable(); } catch (_) {}
+        }
+        const [result] = await pool.query(
+          'SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1',
+          [normalizedEmail]
+        );
+        rows = result;
+      } else if (selectErr.code === 'ER_BAD_FIELD_ERROR' && selectErr.message.includes('password')) {
         const [result] = await pool.query(
           'SELECT id, name, email, password_hash, role FROM users WHERE email = ? LIMIT 1',
           [normalizedEmail]
@@ -218,7 +229,7 @@ const login = async (req, res) => {
     const tokenPayload = {
       id: user.id,
       email: user.email,
-      role: user.role.toLowerCase(),
+      role: (user.role || 'customer').toLowerCase(),
       name: user.name,
     };
 
@@ -235,14 +246,25 @@ const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role.toLowerCase(),
+        role: (user.role || 'customer').toLowerCase(),
       },
     });
   } catch (error) {
     console.error('Login error:', error);
+    const isConnError =
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'PROTOCOL_CONNECTION_LOST' ||
+      (error.message && (error.message.includes('timeout') || error.message.includes('connect')));
+
+    const errorMessage = isConnError
+      ? 'Database connection timed out. Please check database connectivity and SSL settings.'
+      : (error.message || 'An error occurred during login.');
+
     return res.status(500).json({
       success: false,
-      error: 'An error occurred during login.',
+      error: errorMessage,
       details: error.message,
     });
   }

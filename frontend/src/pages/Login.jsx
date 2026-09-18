@@ -70,12 +70,17 @@ export default function Login() {
       let rawError =
         err.response?.data?.error ||
         err.response?.data?.message ||
+        (typeof err.response?.data === 'string' && err.response.data.trim() ? err.response.data.trim() : null) ||
         err.message ||
         'Unable to connect to server. Please try again later.';
       if (typeof rawError === 'object' && rawError !== null) {
         rawError = rawError.message || JSON.stringify(rawError);
       }
-      setError(String(rawError));
+      let displayError = String(rawError);
+      if (displayError.toLowerCase().includes('server error has occurred')) {
+        displayError = 'Server or database is initializing. Please verify database settings or retry in a few moments.';
+      }
+      setError(displayError);
     } finally {
       setIsSubmitting(false);
     }

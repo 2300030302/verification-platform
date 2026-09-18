@@ -37,9 +37,9 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
-    if (process.env.NODE_ENV !== 'production') return callback(null, true);
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+    if (/vercel\.app$/.test(origin)) return callback(null, true);
+    // Allow same-origin and cloud deployments by default
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -50,13 +50,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+// Health check endpoints (accessible both with and without /api prefix)
+app.get(['/api/health', '/health'], (req, res) => {
+  res.json({ status: 'ok', service: 'backend' });
 });
 
 // Checks the real MySQL connection without exposing database credentials.
-app.get('/api/health/database', async (req, res) => {
+app.get(['/api/health/database', '/health/database'], async (req, res) => {
   const databaseStatus = await checkDatabaseConnection();
 
   res.status(databaseStatus.connected ? 200 : 503).json({
@@ -66,40 +66,49 @@ app.get('/api/health/database', async (req, res) => {
 });
 
 // Test endpoint to verify routing
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Test endpoint working' });
+app.get(['/api/test', '/test'], (req, res) => {
+  res.json({ message: 'Test endpoint working', path: req.path });
 });
 
-// Authentication routes
+// Authentication routes (mount on both /api/auth and /auth for universal Vercel rewrite compatibility)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 
 // Document management routes
 app.use('/api/documents', documentRoutes);
+app.use('/documents', documentRoutes);
 
 // Extracted data routes
 app.use('/api/extracted-data', extractedDataRoutes);
+app.use('/extracted-data', extractedDataRoutes);
 
 // Validation routes
 app.use('/api/validation', validationRoutes);
+app.use('/validation', validationRoutes);
 
 // Risk assessment routes
 app.use('/api/risk', riskRoutes);
+app.use('/risk', riskRoutes);
 
 // Transaction routes
 app.use('/api/transactions', transactionRoutes);
+app.use('/transactions', transactionRoutes);
 
 // Financial analysis routes
 app.use('/api/financial-analysis', financialAnalysisRoutes);
+app.use('/financial-analysis', financialAnalysisRoutes);
 
 // Compliance officer workspace routes
 app.use('/api/officer', officerRoutes);
+app.use('/officer', officerRoutes);
 
 // Customer AI assistant chat routes
 app.use('/api/chat', chatRoutes);
+app.use('/chat', chatRoutes);
 
-// Error handling middleware for Multer errors
+// Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Error middleware hit:', error);
+  console.error('[Server Error]', error);
   
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -121,10 +130,12 @@ app.use((error, req, res, next) => {
     });
   }
   
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error'
-  });
+  if (!res.headersSent) {
+    res.status(error.status || 500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+    });
+  }
 });
 
 if (require.main === module) {

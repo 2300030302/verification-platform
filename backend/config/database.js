@@ -3,11 +3,30 @@ const mysql = require('mysql2/promise');
 const requiredVariables = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'];
 let pool;
 
+function parseDatabaseUrl() {
+  const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.TIDB_URL;
+  if (!dbUrl) return;
+
+  try {
+    const parsed = new URL(dbUrl);
+    if (parsed.hostname && !process.env.DB_HOST) process.env.DB_HOST = parsed.hostname;
+    if (parsed.port && !process.env.DB_PORT) process.env.DB_PORT = parsed.port;
+    if (parsed.username && !process.env.DB_USER) process.env.DB_USER = decodeURIComponent(parsed.username);
+    if (parsed.password && !process.env.DB_PASSWORD) process.env.DB_PASSWORD = decodeURIComponent(parsed.password);
+    if (parsed.pathname && !process.env.DB_NAME) process.env.DB_NAME = parsed.pathname.replace(/^\//, '');
+    if (parsed.searchParams.get('ssl') || parsed.searchParams.get('sslmode')) process.env.DB_SSL = 'true';
+  } catch (err) {
+    console.warn('[Database] Could not parse database URL:', err.message);
+  }
+}
+
 function getMissingDatabaseVariables() {
+  parseDatabaseUrl();
   return requiredVariables.filter((variable) => !process.env[variable]);
 }
 
 function getDatabasePool() {
+  parseDatabaseUrl();
   const missingVariables = getMissingDatabaseVariables();
 
   if (missingVariables.length > 0) {
@@ -15,18 +34,34 @@ function getDatabasePool() {
   }
 
   if (!pool) {
+    const host = process.env.DB_HOST;
+    const port = Number(process.env.DB_PORT) || 3306;
+    const isTiDB =
+      (host && (host.includes('tidb') || host.includes('prod.aws'))) ||
+      port === 4000;
+    const isRemote = host && host !== 'localhost' && host !== '127.0.0.1';
+
     const poolConfig = {
-      host: process.env.DB_HOST,
+      host,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      port: Number(process.env.DB_PORT) || 3306,
+      port,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 5000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
     };
 
-    if (process.env.DB_SSL === 'true' || process.env.MYSQL_SSL === 'true') {
+    // Auto-enable SSL for TiDB Cloud or any remote database unless explicitly disabled
+    if (
+      process.env.DB_SSL === 'true' ||
+      process.env.MYSQL_SSL === 'true' ||
+      isTiDB ||
+      (isRemote && process.env.DB_SSL !== 'false')
+    ) {
       poolConfig.ssl = { rejectUnauthorized: false };
     }
 
