@@ -1,11 +1,102 @@
 const fs = require('fs');
 const path = require('path');
-const pdfParse = require('pdf-parse');
-const { createWorker } = require('tesseract.js');
+
+// Lazy-loaded library singletons
+let cachedPdfParse = null;
+let cachedCreateWorker = null;
+
+/**
+ * Polyfills DOMMatrix, ImageData, and Path2D in headless Node environments
+ * (e.g. Vercel serverless functions where @napi-rs/canvas native binaries may not be present).
+ */
+function ensureCanvasPolyfills() {
+  if (typeof globalThis.DOMMatrix === 'undefined') {
+    globalThis.DOMMatrix = class DOMMatrix {
+      constructor(init) {
+        this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
+        this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
+        this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
+        this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
+        this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
+        this.is2D = true;
+        this.isIdentity = true;
+        if (Array.isArray(init) && init.length === 6) {
+          this.a = init[0]; this.b = init[1]; this.c = init[2];
+          this.d = init[3]; this.e = init[4]; this.f = init[5];
+        }
+      }
+      preMultiplySelf() { return this; }
+      multiplySelf() { return this; }
+      invertSelf() { return this; }
+      translate() { return this; }
+      scale() { return this; }
+      rotate() { return this; }
+    };
+  }
+
+  if (typeof globalThis.ImageData === 'undefined') {
+    globalThis.ImageData = class ImageData {
+      constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.data = new Uint8ClampedArray(width * height * 4);
+      }
+    };
+  }
+
+  if (typeof globalThis.Path2D === 'undefined') {
+    globalThis.Path2D = class Path2D {
+      constructor() {}
+      addPath() {}
+      closePath() {}
+      moveTo() {}
+      lineTo() {}
+      bezierCurveTo() {}
+      quadraticCurveTo() {}
+      arc() {}
+      arcTo() {}
+      ellipse() {}
+      rect() {}
+    };
+  }
+}
+
+/**
+ * Lazy loads the pdf-parse library only when a PDF extraction is requested.
+ * Applies canvas polyfills so serverless runtimes never crash during PDF parsing.
+ */
+function getPdfParser() {
+  if (!cachedPdfParse) {
+    ensureCanvasPolyfills();
+    try {
+      cachedPdfParse = require('pdf-parse');
+    } catch (err) {
+      console.warn('[OCR Service] Error loading pdf-parse:', err.message);
+      throw new Error(`PDF parsing module unavailable: ${err.message}`);
+    }
+  }
+  return cachedPdfParse;
+}
+
+/**
+ * Lazy loads tesseract.js worker factory only when image OCR is requested.
+ */
+function getTesseractWorkerFactory() {
+  if (!cachedCreateWorker) {
+    try {
+      const tesseract = require('tesseract.js');
+      cachedCreateWorker = tesseract.createWorker;
+    } catch (err) {
+      console.warn('[OCR Service] Error loading tesseract.js:', err.message);
+      throw new Error(`OCR module unavailable: ${err.message}`);
+    }
+  }
+  return cachedCreateWorker;
+}
 
 /**
  * Extracts text from a document based on its MIME type.
- * Supports PDF documents via pdf-parse and Image documents (PNG, JPEG, JPG) via tesseract.js.
+ * Supports PDF documents via lazy-loaded pdf-parse and Image documents (PNG, JPEG, JPG) via lazy-loaded tesseract.js.
  *
  * @param {string} filePath - Absolute or relative path to the file on disk
  * @param {string} mimeType - MIME type of the file (e.g. application/pdf, image/jpeg, image/png)
@@ -18,12 +109,14 @@ async function extractText(filePath, mimeType) {
 
   const normalizedMime = (mimeType || '').toLowerCase().trim();
 
-  // 1. PDF Extraction
+  // 1. PDF Extraction (lazy loaded)
   if (normalizedMime === 'application/pdf' || filePath.toLowerCase().endsWith('.pdf')) {
     try {
       const dataBuffer = fs.readFileSync(filePath);
       let text = '';
       let pageCount = 1;
+
+      const pdfParse = getPdfParser();
 
       if (typeof pdfParse === 'function') {
         const data = await pdfParse(dataBuffer);
@@ -55,7 +148,7 @@ async function extractText(filePath, mimeType) {
     }
   }
 
-  // 2. Image OCR (PNG, JPG, JPEG)
+  // 2. Image OCR (PNG, JPG, JPEG) (lazy loaded)
   if (
     normalizedMime.startsWith('image/') ||
     filePath.toLowerCase().endsWith('.png') ||
@@ -64,6 +157,7 @@ async function extractText(filePath, mimeType) {
   ) {
     let worker;
     try {
+      const createWorker = getTesseractWorkerFactory();
       worker = await createWorker('eng');
       const ret = await worker.recognize(filePath);
       await worker.terminate();
@@ -96,4 +190,5 @@ async function extractText(filePath, mimeType) {
 
 module.exports = {
   extractText,
+  ensureCanvasPolyfills,
 };

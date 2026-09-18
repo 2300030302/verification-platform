@@ -70,41 +70,43 @@ app.get(['/api/test', '/test'], (req, res) => {
   res.json({ message: 'Test endpoint working', path: req.path });
 });
 
-// Authentication routes (mount on both /api/auth and /auth for universal Vercel rewrite compatibility)
-app.use('/api/auth', authRoutes);
-app.use('/auth', authRoutes);
+// Defensive route registration: validates each router is a function before mounting
+// and mounts on both /api/* and /* for full Vercel Services and rewrite compatibility
+const mountRoute = (basePath, routerModule, routerName) => {
+  if (typeof routerModule === 'function') {
+    app.use(`/api${basePath}`, routerModule);
+    app.use(basePath, routerModule);
+  } else {
+    console.error(`[Server Error] Cannot mount ${routerName} at ${basePath}: expected function, got ${typeof routerModule}`);
+  }
+};
+
+// Authentication routes
+mountRoute('/auth', authRoutes, 'authRoutes');
 
 // Document management routes
-app.use('/api/documents', documentRoutes);
-app.use('/documents', documentRoutes);
+mountRoute('/documents', documentRoutes, 'documentRoutes');
 
 // Extracted data routes
-app.use('/api/extracted-data', extractedDataRoutes);
-app.use('/extracted-data', extractedDataRoutes);
+mountRoute('/extracted-data', extractedDataRoutes, 'extractedDataRoutes');
 
 // Validation routes
-app.use('/api/validation', validationRoutes);
-app.use('/validation', validationRoutes);
+mountRoute('/validation', validationRoutes, 'validationRoutes');
 
 // Risk assessment routes
-app.use('/api/risk', riskRoutes);
-app.use('/risk', riskRoutes);
+mountRoute('/risk', riskRoutes, 'riskRoutes');
 
 // Transaction routes
-app.use('/api/transactions', transactionRoutes);
-app.use('/transactions', transactionRoutes);
+mountRoute('/transactions', transactionRoutes, 'transactionRoutes');
 
 // Financial analysis routes
-app.use('/api/financial-analysis', financialAnalysisRoutes);
-app.use('/financial-analysis', financialAnalysisRoutes);
+mountRoute('/financial-analysis', financialAnalysisRoutes, 'financialAnalysisRoutes');
 
 // Compliance officer workspace routes
-app.use('/api/officer', officerRoutes);
-app.use('/officer', officerRoutes);
+mountRoute('/officer', officerRoutes, 'officerRoutes');
 
 // Customer AI assistant chat routes
-app.use('/api/chat', chatRoutes);
-app.use('/chat', chatRoutes);
+mountRoute('/chat', chatRoutes, 'chatRoutes');
 
 // Error handling middleware
 app.use((error, req, res, next) => {
