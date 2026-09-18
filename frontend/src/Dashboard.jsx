@@ -39,20 +39,26 @@ function Dashboard() {
   }, []);
 
   const requiredDocTypes = ['GOVERNMENT_ID', 'BANK_STATEMENT', 'ADDRESS_PROOF'];
+  const docList = Array.isArray(documents) ? documents : [];
 
   const getDocForType = (type) =>
-    documents.find((d) => d.documentType === type || d.document_type === type);
+    docList.find((d) => d && (d.documentType === type || d.document_type === type));
 
   const isDocUploaded = (type) => {
     const doc = getDocForType(type);
-    return Boolean(doc && doc.status && doc.status.toUpperCase() !== 'PENDING');
+    return Boolean(
+      doc &&
+      doc.status &&
+      typeof doc.status === 'string' &&
+      doc.status.toUpperCase() !== 'PENDING'
+    );
   };
 
   const allRequiredUploaded = requiredDocTypes.every(isDocUploaded);
 
   const getDocStatusClass = (type) => {
     const doc = getDocForType(type);
-    if (!doc || !doc.status) return 'missing';
+    if (!doc || !doc.status || typeof doc.status !== 'string') return 'missing';
     const s = doc.status.toUpperCase();
     if (s === 'PROCESSED' || s === 'UPLOADED') return 'uploaded';
     if (s === 'PROCESSING') return 'pending';
@@ -61,7 +67,7 @@ function Dashboard() {
 
   const getDocStatusLabel = (type) => {
     const doc = getDocForType(type);
-    if (!doc || !doc.status) return t('documents.pendingBadge', {}, 'Pending');
+    if (!doc || !doc.status || typeof doc.status !== 'string') return t('documents.pendingBadge', {}, 'Pending');
     const s = doc.status.toUpperCase();
     if (s === 'PROCESSED') return t('documents.processedBadge', {}, 'Processed');
     if (s === 'PROCESSING') return t('documents.processingBadge', {}, 'Processing...');
@@ -70,7 +76,8 @@ function Dashboard() {
   };
 
   const getStatusBadge = () => {
-    switch (caseStatus) {
+    const status = (caseStatus || '').toUpperCase();
+    switch (status) {
       case 'APPROVED':
         return {
           text: t('dashboard.approvedBadge', {}, 'Approved'),

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './i18n/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import OfficerDashboard from './pages/OfficerDashboard';
@@ -14,13 +15,14 @@ import Help from './Help';
 
 function App() {
   return (
-    <Router>
-      <LanguageProvider>
-        <AuthProvider>
-        <Routes>
-          {/* Public Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <ErrorBoundary>
+      <Router>
+        <LanguageProvider>
+          <AuthProvider>
+            <Routes>
+              {/* Public Authentication Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
           {/* Protected Customer Routes */}
           <Route
@@ -88,6 +90,7 @@ function App() {
       </AuthProvider>
     </LanguageProvider>
   </Router>
+  </ErrorBoundary>
   );
 }
 

@@ -16,18 +16,28 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const verifyExistingToken = async () => {
-      const savedToken = localStorage.getItem('token');
+      let savedToken = null;
+      try {
+        savedToken = localStorage.getItem('token');
+      } catch {
+        savedToken = null;
+      }
+
       if (savedToken) {
         try {
           const data = await authAPI.getCurrentUser();
           if (data && data.user) {
             setUser(data.user);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            try {
+              localStorage.setItem('user', JSON.stringify(data.user));
+            } catch {}
           }
         } catch {
           // Token invalid or expired
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          } catch {}
           setUser(null);
           setToken(null);
         }
@@ -39,17 +49,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (newToken, newUser) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    try {
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(newUser));
+    } catch (e) {
+      console.warn('Unable to persist session to localStorage:', e);
+    }
     setToken(newToken);
     setUser(newUser);
+    setLoading(false);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } catch {}
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   return (

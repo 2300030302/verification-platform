@@ -68,9 +68,11 @@ export function LanguageProvider({ children }) {
 
       // 4. Parameter substitution: {name}
       if (params && typeof params === 'object') {
+        let strText = String(text);
         Object.entries(params).forEach(([k, v]) => {
-          text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+          strText = strText.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
         });
+        text = strText;
       }
 
       return text;

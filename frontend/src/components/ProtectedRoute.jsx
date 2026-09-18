@@ -33,11 +33,27 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     const isAllowed = allowedRoles.some((r) => r.toLowerCase() === userRole);
 
     if (!isAllowed) {
-      // Redirect based on user's actual role
-      if (userRole === 'officer') {
-        return <Navigate to="/officer/dashboard" replace />;
+      // Redirect based on user's actual role, avoiding infinite loop if already at target
+      const fallbackPath = userRole === 'officer' ? '/officer/dashboard' : '/dashboard';
+      if (location.pathname === fallbackPath) {
+        return (
+          <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '1rem',
+            fontFamily: 'sans-serif',
+            color: '#4b5563',
+            background: '#f9fafb',
+          }}>
+            <h2>Access Denied</h2>
+            <p>You do not have permission to view this page.</p>
+          </div>
+        );
       }
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to={fallbackPath} replace />;
     }
   }
 

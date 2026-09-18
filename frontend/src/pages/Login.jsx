@@ -47,14 +47,17 @@ export default function Login() {
 
         // Redirect based on role
         const userRole = (response.user.role || '').toLowerCase();
-        let destination = location.state?.from?.pathname;
+        let destination =
+          typeof location.state?.from === 'string'
+            ? location.state.from
+            : location.state?.from?.pathname;
 
         if (userRole === 'officer') {
-          if (!destination || !destination.startsWith('/officer')) {
+          if (!destination || destination === '/' || destination === '/login' || !destination.startsWith('/officer')) {
             destination = '/officer/dashboard';
           }
         } else {
-          if (!destination || destination.startsWith('/officer')) {
+          if (!destination || destination === '/' || destination === '/login' || destination.startsWith('/officer')) {
             destination = '/dashboard';
           }
         }
