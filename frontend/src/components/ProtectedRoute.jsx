@@ -50,6 +50,26 @@ export default function ProtectedRoute({ children, allowedRoles }) {
           }}>
             <h2>Access Denied</h2>
             <p>You do not have permission to view this page.</p>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.clear();
+                } catch {}
+                window.location.href = '/login';
+              }}
+              style={{
+                padding: '0.6rem 1.2rem',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                color: '#1f2937',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Sign In with different credentials
+            </button>
           </div>
         );
       }

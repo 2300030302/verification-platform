@@ -76,7 +76,7 @@ function Dashboard() {
   };
 
   const getStatusBadge = () => {
-    const status = (caseStatus || '').toUpperCase();
+    const status = (typeof caseStatus === 'string' ? caseStatus : String(caseStatus || '')).toUpperCase();
     switch (status) {
       case 'APPROVED':
         return {
@@ -113,13 +113,14 @@ function Dashboard() {
   };
 
   const statusInfo = getStatusBadge();
+  const displayName = typeof user?.name === 'string' && user.name.trim() ? user.name.trim() : 'Customer';
 
   return (
     <div className="content-wrapper">
       {/* Welcome Section */}
       <section className="welcome-section">
         <h2 className="welcome-title">
-          {t('dashboard.welcomeTitle', { name: user?.name || 'Customer' }, `Welcome back, ${user?.name || 'Customer'}!`)}
+          {t('dashboard.welcomeTitle', { name: displayName }, `Welcome back, ${displayName}!`)}
         </h2>
         <p className="welcome-subtitle">
           {t('dashboard.welcomeSubtitle', {}, 'Complete your verification to access all banking features')}

@@ -28,7 +28,9 @@ function Layout({ children }) {
           <h1 className="layout-app-name">{t('header.portalTitle', {}, 'Customer Verification Portal')}</h1>
           <div className="layout-user-info">
             <LanguageSelector variant="header" />
-            <span className="layout-customer-name">{user?.name || 'Customer'}</span>
+            <span className="layout-customer-name">
+              {typeof user?.name === 'string' && user.name.trim() ? user.name.trim() : 'Customer'}
+            </span>
             <button className="layout-logout-btn" onClick={handleLogout}>
               {t('common.logout', {}, 'Logout')}
             </button>

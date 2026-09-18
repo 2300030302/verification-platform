@@ -21,16 +21,24 @@ function VerificationStatus() {
           if (res && res.success) {
             setData(res);
           } else {
-            setError(res?.error || 'Unable to load verification status.');
+            let errorMsg = res?.error || 'Unable to load verification status.';
+            if (typeof errorMsg === 'object' && errorMsg !== null) {
+              errorMsg = errorMsg.message || JSON.stringify(errorMsg);
+            }
+            setError(String(errorMsg));
           }
         }
       } catch (err) {
         if (isMounted) {
-          setError(
+          let rawError =
             err.response?.data?.error ||
-              err.response?.data?.message ||
-              'Failed to load verification status.'
-          );
+            err.response?.data?.message ||
+            err.message ||
+            'Failed to load verification status.';
+          if (typeof rawError === 'object' && rawError !== null) {
+            rawError = rawError.message || JSON.stringify(rawError);
+          }
+          setError(String(rawError));
         }
       } finally {
         if (isMounted) {

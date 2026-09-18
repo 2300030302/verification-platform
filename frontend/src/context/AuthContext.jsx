@@ -6,12 +6,22 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('user');
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (!savedUser || savedUser === 'undefined' || savedUser === 'null') return null;
+      const parsed = JSON.parse(savedUser);
+      return parsed && typeof parsed === 'object' ? parsed : null;
     } catch {
       return null;
     }
   });
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    try {
+      const savedToken = localStorage.getItem('token');
+      if (!savedToken || savedToken === 'undefined' || savedToken === 'null') return null;
+      return savedToken;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +29,7 @@ export function AuthProvider({ children }) {
       let savedToken = null;
       try {
         savedToken = localStorage.getItem('token');
+        if (savedToken === 'undefined' || savedToken === 'null') savedToken = null;
       } catch {
         savedToken = null;
       }

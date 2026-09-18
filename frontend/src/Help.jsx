@@ -90,14 +90,22 @@ function Help() {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } else {
-        setError(res.error || 'The assistant could not process your question. Please try again.');
+        let errorMsg = res?.error || 'The assistant could not process your question. Please try again.';
+        if (typeof errorMsg === 'object' && errorMsg !== null) {
+          errorMsg = errorMsg.message || JSON.stringify(errorMsg);
+        }
+        setError(String(errorMsg));
       }
     } catch (err) {
-      setError(
+      let rawError =
         err.response?.data?.error ||
-          err.response?.data?.message ||
-          'Failed to contact the assistant. Please check your connection and try again.'
-      );
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to contact the assistant. Please check your connection and try again.';
+      if (typeof rawError === 'object' && rawError !== null) {
+        rawError = rawError.message || JSON.stringify(rawError);
+      }
+      setError(String(rawError));
     } finally {
       setLoading(false);
       inputRef.current?.focus();

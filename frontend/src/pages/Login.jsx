@@ -64,14 +64,18 @@ export default function Login() {
 
         navigate(destination, { replace: true });
       } else {
-        setError(t('auth.loginFailed', {}, 'Login failed. Please check your credentials.'));
+        setError(String(t('auth.loginFailed', {}, 'Login failed. Please check your credentials.')));
       }
     } catch (err) {
-      const errorMsg =
+      let rawError =
         err.response?.data?.error ||
         err.response?.data?.message ||
+        err.message ||
         'Unable to connect to server. Please try again later.';
-      setError(errorMsg);
+      if (typeof rawError === 'object' && rawError !== null) {
+        rawError = rawError.message || JSON.stringify(rawError);
+      }
+      setError(String(rawError));
     } finally {
       setIsSubmitting(false);
     }

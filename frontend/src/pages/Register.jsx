@@ -65,11 +65,15 @@ export default function Register() {
         setError('Registration failed. Please try again.');
       }
     } catch (err) {
-      const errorMsg =
+      let rawError =
         err.response?.data?.error ||
         err.response?.data?.message ||
+        err.message ||
         'Unable to complete registration. Please check your details and try again.';
-      setError(errorMsg);
+      if (typeof rawError === 'object' && rawError !== null) {
+        rawError = rawError.message || JSON.stringify(rawError);
+      }
+      setError(String(rawError));
     } finally {
       setIsSubmitting(false);
     }
