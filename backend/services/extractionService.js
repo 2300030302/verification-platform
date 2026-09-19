@@ -19,21 +19,39 @@ function extractGovernmentId(text) {
   const textNormalized = text || '';
 
   // 1. Name
-  const nameMatch = textNormalized.match(
-    /(?:Full\s*Name|Given\s*Names?|Surname|Name|Holder(?:\s*Name)?)[:\s]+([A-Za-z\s.,'-]{2,60})(?=\n|\r|DOB|Date|ID|No|Address|Country|Sex|Gender|$)/i
+  let nameMatch = textNormalized.match(
+    /(?:Full\s*Name|Given\s*Names?|Surname|Name|Holder(?:\s*Name)?)[:\s]+([A-Za-z\s.,'-]{2,60})(?=\n|\r|DOB|Date|ID|No|Address|Country|Sex|Gender|Father|Mother|Spouse|Parent|$)/i
   );
-  if (nameMatch && cleanValue(nameMatch[1])) {
+  let nameVal = nameMatch && cleanValue(nameMatch[1]) ? cleanValue(nameMatch[1]) : '';
+
+  // Check if name is on the line following 'Name' (standard in ID cards like PAN)
+  const lines = textNormalized.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const nameLineIdx = lines.findIndex((l) => /\bName\b/i.test(l) && !/Father|Mother|Bank|Company|Permanent|Account/i.test(l));
+  if (nameLineIdx !== -1 && nameLineIdx + 1 < lines.length) {
+    const nextL = lines[nameLineIdx + 1].replace(/^[~|_\s-]+/, '').trim();
+    const candidateName = nextL.split(/\s{2,}|\b(?:SONORA|We|CT|Father|DOB)\b/i)[0].trim();
+    if (/^[A-Z][a-zA-Z\s]{2,40}$/.test(candidateName)) {
+      nameVal = candidateName;
+    }
+  }
+
+  if (nameVal) {
     fields.push({
       field_name: 'name',
-      field_value: cleanValue(nameMatch[1]),
+      field_value: nameVal,
       confidence: 0.92,
     });
   }
 
   // 2. Date of Birth
-  const dobMatch = textNormalized.match(
+  let dobMatch = textNormalized.match(
     /(?:DOB|Date\s*of\s*Birth|Birth\s*Date|D\.O\.B\.?)[:\s]+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4})/i
   );
+  if (!dobMatch) {
+    // Fallback: look for date within proximity of Birth/DOB keyword
+    const dobNear = textNormalized.match(/(?:DOB|Date\s*of\s*Birth|Birth)[\s\S]{0,60}?(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/i);
+    if (dobNear) dobMatch = dobNear;
+  }
   if (dobMatch && cleanValue(dobMatch[1])) {
     fields.push({
       field_name: 'date_of_birth',
@@ -44,7 +62,7 @@ function extractGovernmentId(text) {
 
   // 3. ID Number
   const idMatch = textNormalized.match(
-    /(?:ID\s*Number|ID\s*No|Passport\s*No|Driver'?s?\s*License\s*No|License\s*No|Document\s*No|ID#|Identification\s*No)[:\s]+([A-Z0-9-]{5,25})/i
+    /(?:ID\s*Number|ID\s*No|Passport\s*No|Driver'?s?\s*License\s*No|License\s*No|Document\s*No|ID#|Identification\s*No|PAN|Permanent\s*Account\s*Number)[:\s]+([A-Z0-9-]{5,25})/i
   );
   if (idMatch && cleanValue(idMatch[1])) {
     fields.push({
@@ -52,6 +70,38 @@ function extractGovernmentId(text) {
       field_value: cleanValue(idMatch[1]),
       confidence: 0.94,
     });
+  } else {
+    // Fallback ID patterns (PAN with OCR 0/O flexibility, Passport, Aadhaar, SSN)
+    const panMatch = textNormalized.match(/\b([A-Z]{5}[0-9O]{4,5}[A-Z])\b/);
+    const passportMatch = textNormalized.match(/\b([A-Z][0-9]{7,8})\b/);
+    const aadhaarMatch = textNormalized.match(/\b(\d{4}\s\d{4}\s\d{4})\b/);
+    const ssnMatch = textNormalized.match(/\b(\d{3}-\d{2}-\d{4})\b/);
+
+    if (panMatch) {
+      fields.push({
+        field_name: 'id_number',
+        field_value: panMatch[1],
+        confidence: 0.90,
+      });
+    } else if (passportMatch) {
+      fields.push({
+        field_name: 'id_number',
+        field_value: passportMatch[1],
+        confidence: 0.90,
+      });
+    } else if (aadhaarMatch) {
+      fields.push({
+        field_name: 'id_number',
+        field_value: aadhaarMatch[1],
+        confidence: 0.90,
+      });
+    } else if (ssnMatch) {
+      fields.push({
+        field_name: 'id_number',
+        field_value: ssnMatch[1],
+        confidence: 0.90,
+      });
+    }
   }
 
   // 4. Address
@@ -139,16 +189,33 @@ function extractBankStatement(text) {
 
   // 3. Bank Name
   const bankMatch = textNormalized.match(
-    /(?:Bank\s*Name|Financial\s*Institution|Bank)[:\s]+([A-Za-z0-9\s.,'-]{2,50})(?=\n|\r|Account|Date|$)/i
+    /(?:Bank\s*Name|Financial\s*Institution)[:\s]+([A-Za-z0-9\s.,'-]{2,50})(?=\n|\r|Account|Date|$)/i
   );
-  if (bankMatch && cleanValue(bankMatch[1])) {
+  if (bankMatch && cleanValue(bankMatch[1]) && !/^statement|account|details$/i.test(cleanValue(bankMatch[1]))) {
     fields.push({
       field_name: 'bank_name',
       field_value: cleanValue(bankMatch[1]),
       confidence: 0.90,
     });
   } else {
-    const knownBanks = ['Chase', 'Bank of America', 'Wells Fargo', 'Citibank', 'Barclays', 'HSBC', 'PNC Bank', 'TD Bank', 'Capital One', 'HDFC Bank', 'ICICI Bank', 'State Bank of India'];
+    const knownBanks = [
+      'Chase',
+      'JPMorgan',
+      'Bank of America',
+      'Wells Fargo',
+      'Citibank',
+      'Barclays',
+      'HSBC',
+      'BNP Paribas',
+      'PNC Bank',
+      'TD Bank',
+      'Capital One',
+      'HDFC Bank',
+      'ICICI Bank',
+      'State Bank of India',
+      'Deutsche Bank',
+      'Standard Chartered',
+    ];
     for (const b of knownBanks) {
       if (new RegExp(`\\b${b}\\b`, 'i').test(textNormalized)) {
         fields.push({
@@ -431,7 +498,7 @@ function extractAddressProof(text) {
 
   // 2. Address
   const addressMatch = textNormalized.match(
-    /(?:Service\s*Address|Billing\s*Address|Property\s*Address|Address)[:\s]+([^\n\r]+?)(?=\s*(?:\r?\n|Statement|Bill|Issue|Date|$))/i
+    /(?:Service\s*Address|Billing\s*Address|Property\s*Address|Residential\s*Address|Permanent\s*Address|(?<!proof\s*of\s*)\bAddress)\s*[:\-]\s*([^\n\r]+?)(?=\s*(?:\r?\n|Statement|Bill|Issue|Date|$))/i
   );
   if (addressMatch && cleanValue(addressMatch[1])) {
     fields.push({
@@ -451,6 +518,41 @@ function extractAddressProof(text) {
       field_value: cleanValue(dateMatch[1]),
       confidence: 0.90,
     });
+  }
+
+  // Fallback 1: Name line heuristic if label not matched
+  if (!fields.some((f) => f.field_name === 'name')) {
+    const lines = textNormalized.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const candidate = lines.find(
+      (l) =>
+        /^[A-Z][a-zA-Z\s.,'-]{2,45}$/.test(l) &&
+        !/statement|invoice|bill|utility|electric|water|gas|telecom|broadband|bank|limited|ltd|inc|llc|service/i.test(l)
+    );
+    if (candidate && cleanValue(candidate)) {
+      fields.push({
+        field_name: 'name',
+        field_value: cleanValue(candidate),
+        confidence: 0.78,
+      });
+    }
+  }
+
+  // Fallback 2: Address line heuristic if label not matched
+  if (!fields.some((f) => f.field_name === 'address')) {
+    const lines = textNormalized.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const addrLine = lines.find(
+      (l) =>
+        /\b(?:street|st|avenue|ave|road|rd|lane|drive|dr|blvd|apartment|apt|suite|ste|nagar|colony|sector|cross|layout|box)\b/i.test(l) &&
+        l.length > 8 &&
+        l.length < 120
+    );
+    if (addrLine && cleanValue(addrLine)) {
+      fields.push({
+        field_name: 'address',
+        field_value: cleanValue(addrLine),
+        confidence: 0.82,
+      });
+    }
   }
 
   return fields;
@@ -495,6 +597,12 @@ function extractSupportingDocument(text) {
     fields.push({
       field_name: 'summary',
       field_value: summary,
+      confidence: 0.70,
+    });
+  } else if (lines.length === 1) {
+    fields.push({
+      field_name: 'summary',
+      field_value: lines[0].substring(0, 300),
       confidence: 0.70,
     });
   }

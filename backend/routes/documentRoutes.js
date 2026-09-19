@@ -22,6 +22,11 @@ if (!fs.existsSync(uploadsDir)) {
 // Multer disk storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    try {
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+    } catch (_) {}
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {

@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 **/node_modules/
 .pnpm-store/
@@ -21,6 +21,8 @@ uploads/
 
 # OCR cache / training models
 *.traineddata
+!backend/eng.traineddata
+!eng.traineddata
 
 # Production build outputs
 dist/
